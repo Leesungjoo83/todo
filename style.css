@@ -1,0 +1,693 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #f5f5f5;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+.container {
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    width: 100%;
+    max-width: 500px;
+    padding: 30px;
+}
+
+h1 {
+    color: #333;
+    text-align: center;
+    margin-bottom: 20px;
+    font-size: 28px;
+}
+
+.todo-stats {
+    text-align: center;
+    color: #666;
+    margin-bottom: 20px;
+    font-size: 14px;
+}
+
+.filter-section {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+    justify-content: center;
+}
+
+.period-section {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    justify-content: center;
+}
+
+.period-button {
+    padding: 8px 16px;
+    background: #f0f0f0;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.3s;
+}
+
+.period-button.active {
+    background: #757575;
+    color: white;
+}
+
+.period-button:hover {
+    background: #e0e0e0;
+}
+
+.period-button.active:hover {
+    background: #616161;
+}
+
+.filter-button {
+    padding: 8px 16px;
+    background: #f0f0f0;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.3s;
+}
+
+.filter-button.active {
+    background: #757575;
+    color: white;
+}
+
+.filter-button:hover {
+    background: #e0e0e0;
+}
+
+.filter-button.active:hover {
+    background: #616161;
+}
+
+.input-section {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+    align-items: center;
+}
+
+.details-toggle-section {
+    display: flex;
+    justify-content: flex-start;
+    margin-bottom: 10px;
+}
+
+.details-toggle-button {
+    padding: 10px 15px;
+    background: #9e9e9e;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+.details-toggle-button:hover {
+    background: #757575;
+}
+
+.details-input-section {
+    margin-bottom: 20px;
+}
+
+.details-input-section textarea {
+    width: 100%;
+    padding: 15px;
+    border: 2px solid #e0e0e0;
+    border-radius: 10px;
+    font-size: 14px;
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.3s;
+    resize: vertical;
+}
+
+.details-input-section textarea:focus {
+    border-color: #9e9e9e;
+}
+
+.clear-completed {
+    width: 100%;
+    padding: 10px;
+    background: #ff9800;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 14px;
+    cursor: pointer;
+    margin-top: 15px;
+    transition: background 0.3s;
+}
+
+.clear-completed:hover {
+    background: #f57c00;
+}
+
+.clear-completed:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+}
+
+.save-load-section {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.save-button, .load-button {
+    flex: 1;
+    padding: 10px;
+    border: none;
+    border-radius: 10px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-weight: bold;
+}
+
+.save-button {
+    background: #4caf50;
+    color: white;
+}
+
+.save-button:hover {
+    background: #45a049;
+}
+
+.load-button {
+    background: #2196f3;
+    color: white;
+}
+
+.load-button:hover {
+    background: #0b7dda;
+}
+
+#fileInput {
+    display: none;
+}
+
+#todoInput {
+    flex: 1;
+    padding: 15px;
+    border: 2px solid #e0e0e0;
+    border-radius: 10px;
+    font-size: 16px;
+    outline: none;
+    transition: border-color 0.3s;
+}
+
+#todoInput:focus {
+    border-color: #9e9e9e;
+}
+
+.due-date-input {
+    padding: 15px;
+    border: 2px solid #e0e0e0;
+    border-radius: 10px;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.3s;
+    min-width: 150px;
+}
+
+.due-date-input:focus {
+    border-color: #9e9e9e;
+}
+
+#addButton {
+    padding: 15px 30px;
+    background: #757575;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+#addButton:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    background: #616161;
+}
+
+#addButton:active {
+    transform: translateY(0);
+}
+
+.todo-list {
+    list-style: none;
+}
+
+/* 달력 스타일 */
+.calendar-container {
+    background: white;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.calendar-header {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.calendar-header h3 {
+    margin: 0;
+    color: #333;
+    font-size: 20px;
+}
+
+.calendar-weekdays {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 5px;
+    margin-bottom: 10px;
+}
+
+.calendar-weekday {
+    text-align: center;
+    font-weight: bold;
+    color: #666;
+    padding: 10px;
+    font-size: 14px;
+}
+
+.calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 5px;
+}
+
+.calendar-day {
+    min-height: 100px;
+    border: 1px solid #e0e0e0;
+    border-radius: 5px;
+    padding: 5px;
+    background: #fafafa;
+    position: relative;
+}
+
+.calendar-day.empty {
+    background: transparent;
+    border: none;
+}
+
+.calendar-day.today {
+    background: #e3f2fd;
+    border: 2px solid #2196f3;
+}
+
+.calendar-day-number {
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 5px;
+    font-size: 14px;
+}
+
+.calendar-day-todos {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.calendar-todo-item {
+    background: #757575;
+    color: white;
+    padding: 4px 6px;
+    border-radius: 3px;
+    font-size: 11px;
+    cursor: pointer;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    transition: all 0.2s;
+}
+
+.calendar-todo-item:hover {
+    background: #616161;
+    transform: scale(1.05);
+}
+
+.calendar-todo-item.completed {
+    background: #4caf50;
+    opacity: 0.7;
+    text-decoration: line-through;
+}
+
+.calendar-todo-item.overdue {
+    background: #f44336;
+}
+
+.calendar-todo-text {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.todo-item {
+    background: #f8f9fa;
+    padding: 15px;
+    margin-bottom: 10px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    animation: slideIn 0.3s ease-out;
+    transition: opacity 0.3s;
+}
+
+.todo-item.completed {
+    opacity: 0.6;
+}
+
+.todo-item.completed .todo-text {
+    text-decoration: line-through;
+    color: #999;
+}
+
+.todo-checkbox {
+    width: 20px;
+    height: 20px;
+    margin-right: 15px;
+    cursor: pointer;
+}
+
+.todo-content {
+    display: flex;
+    align-items: center;
+    flex: 1;
+}
+
+.todo-text-wrapper {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    gap: 5px;
+    cursor: pointer;
+    padding: 5px;
+    border-radius: 5px;
+    transition: background 0.2s;
+}
+
+.todo-text-wrapper:hover {
+    background: rgba(0, 0, 0, 0.03);
+}
+
+.has-details-icon {
+    margin-left: 5px;
+    font-size: 14px;
+}
+
+.todo-dates {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    margin-top: 5px;
+}
+
+.todo-date {
+    font-size: 11px;
+    color: #888;
+    line-height: 1.3;
+}
+
+.todo-item.completed .todo-date {
+    color: #aaa;
+}
+
+.completed-date {
+    color: #4caf50;
+    font-weight: 500;
+}
+
+.todo-item.completed .completed-date {
+    color: #66bb6a;
+}
+
+.due-date {
+    color: #ff9800;
+    font-weight: 500;
+}
+
+.due-date.overdue {
+    color: #f44336;
+    font-weight: bold;
+}
+
+.overdue-item {
+    border-left: 4px solid #f44336;
+    background: #fff5f5;
+}
+
+.todo-item.completed .due-date {
+    color: #999;
+    font-weight: normal;
+}
+
+.modified-date {
+    color: #9c27b0;
+    font-weight: 500;
+}
+
+.todo-item.completed .modified-date {
+    color: #aaa;
+}
+
+/* 모달 스타일 */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+.modal:not(.hidden) {
+    display: block;
+    animation: fadeIn 0.3s;
+}
+
+.details-input-section.hidden,
+.modal.hidden {
+    display: none;
+}
+
+.details-input-section:not(.hidden) {
+    display: block;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+.modal-content {
+    background-color: white;
+    margin: 5% auto;
+    padding: 0;
+    border-radius: 15px;
+    width: 90%;
+    max-width: 600px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    animation: slideDown 0.3s;
+}
+
+@keyframes slideDown {
+    from {
+        transform: translateY(-50px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.modal-header {
+    padding: 20px 30px;
+    border-bottom: 1px solid #e0e0e0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #757575;
+    color: white;
+    border-radius: 15px 15px 0 0;
+}
+
+.modal-header h2 {
+    margin: 0;
+    font-size: 20px;
+}
+
+.close-modal {
+    color: white;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+    line-height: 1;
+    transition: transform 0.2s;
+}
+
+.close-modal:hover {
+    transform: scale(1.2);
+}
+
+.modal-body {
+    padding: 30px;
+}
+
+.modal-body textarea {
+    width: 100%;
+    padding: 15px;
+    border: 2px solid #e0e0e0;
+    border-radius: 10px;
+    font-size: 14px;
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.3s;
+    resize: vertical;
+    min-height: 150px;
+}
+
+.modal-body textarea:focus {
+    border-color: #9e9e9e;
+}
+
+.modal-footer {
+    padding: 20px 30px;
+    border-top: 1px solid #e0e0e0;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    border-radius: 0 0 15px 15px;
+}
+
+.save-details-button,
+.cancel-details-button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.save-details-button {
+    background: #4caf50;
+    color: white;
+}
+
+.save-details-button:hover {
+    background: #45a049;
+}
+
+.cancel-details-button {
+    background: #9e9e9e;
+    color: white;
+}
+
+.cancel-details-button:hover {
+    background: #757575;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateX(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.todo-text {
+    flex: 1;
+    color: #333;
+    font-size: 16px;
+    word-break: break-word;
+}
+
+.delete-button {
+    background: #ff6b6b;
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background 0.3s;
+}
+
+.delete-button:hover {
+    background: #ff5252;
+}
+
+.empty-message {
+    text-align: center;
+    color: #999;
+    padding: 40px;
+    font-size: 16px;
+}
+
+.language-selector {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-bottom: 20px;
+}
+
+.lang-button {
+    padding: 6px 12px;
+    background: #f0f0f0;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: all 0.3s;
+}
+
+.lang-button.active {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.lang-button:hover {
+    background: #e0e0e0;
+}
+
+.lang-button.active:hover {
+    background: linear-gradient(135deg, #5568d3 0%, #653a91 100%);
+}
+

@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>할일 목록</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1 id="appTitle">📝 할일 목록</h1>
+        
+        <div class="todo-stats" id="todoStats">
+            전체: 0 | 완료: 0 | 진행중: 0
+        </div>
+
+        <div class="filter-section">
+            <button class="filter-button active" onclick="setFilter('all')" id="filterAll">전체</button>
+            <button class="filter-button" onclick="setFilter('active')" id="filterActive">진행중</button>
+            <button class="filter-button" onclick="setFilter('completed')" id="filterCompleted">완료</button>
+        </div>
+        
+        <div class="period-section">
+            <button class="period-button active" onclick="setPeriod('all')" id="periodAll">전체 기간</button>
+            <button class="period-button" onclick="setPeriod('week')" id="periodWeek">주간</button>
+            <button class="period-button" onclick="setPeriod('month')" id="periodMonth">월간</button>
+        </div>
+        
+        <div class="input-section">
+            <input 
+                type="text" 
+                id="todoInput" 
+                placeholder="할일을 입력하세요..."
+                autocomplete="off"
+            >
+            <input 
+                type="date" 
+                id="dueDateInput" 
+                class="due-date-input"
+                aria-label="완료 예정일"
+            >
+            <button id="addButton">+ 추가</button>
+        </div>
+        <div class="details-toggle-section">
+            <button id="detailsToggleButton" class="details-toggle-button" onclick="toggleDetailsInput()" title="세부내용 추가">📝</button>
+        </div>
+        <div class="details-input-section hidden" id="detailsInputSection">
+            <textarea 
+                id="detailsInput" 
+                placeholder="세부내용을 입력하세요..."
+                rows="3"
+            ></textarea>
+        </div>
+
+        <ul id="todoList" class="todo-list"></ul>
+
+        <button class="clear-completed" id="clearCompleted" onclick="clearCompleted()">
+            완료된 항목 모두 삭제
+        </button>
+
+        <div class="save-load-section">
+            <button class="save-button" onclick="saveToFile()" id="saveButton">💾 파일로 저장</button>
+            <button class="load-button" onclick="document.getElementById('fileInput').click()" id="loadButton">📂 파일에서 불러오기</button>
+            <input type="file" id="fileInput" accept=".json" onchange="loadFromFile(event)" aria-label="파일 불러오기">
+        </div>
+    </div>
+
+    <!-- 세부내용 모달 -->
+    <div id="detailsModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">세부내용</h2>
+                <span class="close-modal" onclick="closeDetailsModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <textarea 
+                    id="detailsEdit" 
+                    placeholder="세부내용을 입력하세요..."
+                    rows="8"
+                ></textarea>
+            </div>
+            <div class="modal-footer">
+                <button class="save-details-button" onclick="saveDetails()">저장</button>
+                <button class="cancel-details-button" onclick="closeDetailsModal()">취소</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
+
