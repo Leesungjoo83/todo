@@ -4,10 +4,98 @@ const todoList = document.getElementById('todoList');
 const todoStats = document.getElementById('todoStats');
 const clearCompletedBtn = document.getElementById('clearCompleted');
 
-// 로컬 스토리지에서 할일 목록 불러오기
-let todos = JSON.parse(localStorage.getItem('todos')) || [];
+// API 기본 URL
+const API_BASE_URL = 'http://localhost:3000/api';
+
+// 할일 목록
+let todos = [];
 let currentFilter = 'all';
 let currentPeriod = 'all';
+
+// API 호출 함수들
+async function fetchTodos() {
+  try {
+    const response = await fetch(`${API_BASE_URL}/todos`);
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || '할일 목록을 불러오는데 실패했습니다.');
+    }
+    todos = await response.json();
+    renderTodos();
+  } catch (error) {
+    console.error('할일 목록 불러오기 오류:', error);
+    if (error.message.includes('Failed to fetch') || error.message.includes('네트워크')) {
+      alert('서버에 연결할 수 없습니다. 서버가 실행 중인지 확인해주세요.');
+    } else if (!error.message.includes('데이터베이스')) {
+      console.error('오류:', error.message);
+    }
+  }
+}
+
+async function createTodo(todoData) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/todos`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(todoData),
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || '할일 추가에 실패했습니다.');
+    }
+    
+    await fetchTodos();
+  } catch (error) {
+    console.error('할일 추가 오류:', error);
+    alert(error.message || '할일 추가에 실패했습니다.');
+  }
+}
+
+async function updateTodo(id, todoData) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/todos/${id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(todoData),
+    });
+    if (!response.ok) throw new Error('할일 수정에 실패했습니다.');
+    await fetchTodos();
+  } catch (error) {
+    console.error('할일 수정 오류:', error);
+    alert('할일 수정에 실패했습니다.');
+  }
+}
+
+async function deleteTodoById(id) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/todos/${id}`, {
+      method: 'DELETE',
+    });
+    if (!response.ok) throw new Error('할일 삭제에 실패했습니다.');
+    await fetchTodos();
+  } catch (error) {
+    console.error('할일 삭제 오류:', error);
+    alert('할일 삭제에 실패했습니다.');
+  }
+}
+
+async function clearCompletedTodos() {
+  try {
+    const response = await fetch(`${API_BASE_URL}/todos`, {
+      method: 'DELETE',
+    });
+    if (!response.ok) throw new Error('완료된 할일 삭제에 실패했습니다.');
+    await fetchTodos();
+  } catch (error) {
+    console.error('완료된 할일 삭제 오류:', error);
+    alert('완료된 할일 삭제에 실패했습니다.');
+  }
+}
 
 // 날짜와 시간 포맷팅 함수 (24시간제)
 function formatDateTime(timestamp) {
@@ -16,15 +104,12 @@ function formatDateTime(timestamp) {
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
-    // getHours()는 0-23 범위의 값을 반환하므로 24시간제
     const hours = String(date.getHours()).padStart(2, '0');
     const minutes = String(date.getMinutes()).padStart(2, '0');
-    
-    // 24시간제 형식: YYYY-MM-DD HH:MM
     return `${year}-${month}-${day} ${hours}:${minutes}`;
 }
 
-// 날짜만 포맷팅 함수 (완료 예정일용)
+// 날짜만 포맷팅 함수
 function formatDate(timestamp) {
     if (!timestamp) return '';
     const date = new Date(timestamp);
@@ -58,7 +143,7 @@ const t = {
     addButton: '+',
     deleteButton: '-',
     clearCompleted: '완료된 항목 모두 삭제',
-    saveButton: '💾 파일로 저장',
+    saveExcelButton: '📊 엑셀로 저장',
     loadButton: '📂 파일에서 불러오기',
     emptyAll: '할일이 없습니다. 새로운 할일을 추가해보세요!',
     emptyActive: '진행중인 할일이 없습니다.',
@@ -68,7 +153,7 @@ const t = {
     confirmLoad: (count) => `파일에서 ${count}개의 할일을 불러오시겠습니까? (기존 할일은 유지됩니다)`,
     alertEmpty: '할일을 입력해주세요!',
     alertNoSave: '저장할 할일이 없습니다.',
-    alertSaveSuccess: '파일이 성공적으로 저장되었습니다!',
+    alertSaveExcelSuccess: '엑셀 파일이 성공적으로 저장되었습니다!',
     alertLoadSuccess: '파일이 성공적으로 불러와졌습니다!',
     alertLoadError: (msg) => `파일을 읽는 중 오류가 발생했습니다: ${msg}`,
     alertInvalidFile: '잘못된 파일 형식입니다.',
@@ -95,7 +180,7 @@ function initializeUI() {
     document.getElementById('todoInput').placeholder = t.placeholder;
     document.getElementById('addButton').textContent = t.addButton;
     document.getElementById('clearCompleted').textContent = t.clearCompleted;
-    document.getElementById('saveButton').textContent = t.saveButton;
+    document.getElementById('saveExcelButton').textContent = t.saveExcelButton;
     document.getElementById('loadButton').textContent = t.loadButton;
     document.getElementById('dueDateInput').setAttribute('aria-label', t.dueDate);
     document.getElementById('detailsInput').placeholder = t.detailsPlaceholder;
@@ -112,8 +197,6 @@ function updateStats() {
     const active = total - completed;
     
     todoStats.textContent = t.stats(total, completed, active);
-    
-    // 완료된 항목이 없으면 버튼 비활성화
     clearCompletedBtn.disabled = completed === 0;
 }
 
@@ -121,7 +204,7 @@ function updateStats() {
 function getWeekRange() {
     const today = new Date();
     const day = today.getDay();
-    const diff = today.getDate() - day + (day === 0 ? -6 : 1); // 월요일로 조정
+    const diff = today.getDate() - day + (day === 0 ? -6 : 1);
     const monday = new Date(today.getFullYear(), today.getMonth(), diff);
     monday.setHours(0, 0, 0, 0);
     const sunday = new Date(monday);
@@ -191,7 +274,7 @@ function renderCalendar() {
     const firstDay = new Date(year, month, 1);
     const lastDay = new Date(year, month + 1, 0);
     const daysInMonth = lastDay.getDate();
-    const startDayOfWeek = firstDay.getDay(); // 0 = 일요일
+    const startDayOfWeek = firstDay.getDay();
     
     // 필터링된 todo 가져오기
     const filteredTodos = getFilteredTodos();
@@ -223,12 +306,10 @@ function renderCalendar() {
             <div class="calendar-grid">
     `;
     
-    // 빈 칸 추가 (첫 번째 날 이전)
     for (let i = 0; i < startDayOfWeek; i++) {
         calendarHTML += '<div class="calendar-day empty"></div>';
     }
     
-    // 각 날짜 셀 생성
     for (let day = 1; day <= daysInMonth; day++) {
         const dateKey = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
         const dayTodos = todosByDate[dateKey] || [];
@@ -238,23 +319,15 @@ function renderCalendar() {
         dayHTML += `<div class="calendar-day-number">${day}</div>`;
         
         if (dayTodos.length > 0) {
-            // 우선순위 정렬: 미완료 우선, 완료는 완료 시간 오름차순
             const sortedTodos = dayTodos.sort((a, b) => {
-                // 미완료 항목이 우선
                 if (!a.completed && b.completed) return -1;
                 if (a.completed && !b.completed) return 1;
-                
-                // 둘 다 완료된 경우 완료 시간 오름차순
                 if (a.completed && b.completed) {
-                    const aTime = a.completedDate || 0;
-                    const bTime = b.completedDate || 0;
-                    return aTime - bTime;
+                    return (a.completedDate || 0) - (b.completedDate || 0);
                 }
-                
                 return 0;
             });
             
-            // 완료된 항목은 최대 2개만 표시
             const incompleteTodos = sortedTodos.filter(todo => !todo.completed);
             const completedTodos = sortedTodos.filter(todo => todo.completed).slice(0, 2);
             const displayTodos = [...incompleteTodos, ...completedTodos];
@@ -299,10 +372,8 @@ function renderTodos() {
     const filteredTodos = getFilteredTodos();
     
     if (filteredTodos.length === 0) {
-        const message = currentFilter === 'all' 
-            ? t.emptyAll
-            : currentFilter === 'active'
-            ? t.emptyActive
+        const message = currentFilter === 'all' ? t.emptyAll
+            : currentFilter === 'active' ? t.emptyActive
             : t.emptyCompleted;
         todoList.innerHTML = `<li class="empty-message">${message}</li>`;
         updateStats();
@@ -314,13 +385,6 @@ function renderTodos() {
         li.className = `todo-item ${todo.completed ? 'completed' : ''}`;
         
         const todoIndex = todos.findIndex(t => t.id === todo.id);
-        
-        // 기존 데이터 호환성을 위해 createdDate가 없으면 현재 시간으로 설정
-        if (!todo.createdDate) {
-            todo.createdDate = Date.now();
-            // localStorage에 저장
-            localStorage.setItem('todos', JSON.stringify(todos));
-        }
         
         // 작성일은 날짜만, 완료일은 시간 포함
         const createdDateStr = formatDate(todo.createdDate);
@@ -351,11 +415,9 @@ function renderTodos() {
             <button class="delete-button" onclick="deleteTodo(${todoIndex})">${t.deleteButton}</button>
         `;
         
-        // 지연된 항목에 클래스 추가
         if (overdue) {
             li.classList.add('overdue-item');
         }
-        
         todoList.appendChild(li);
     });
 
@@ -365,49 +427,35 @@ function renderTodos() {
 // 필터 설정
 function setFilter(filter) {
     currentFilter = filter;
-    
-    // 필터 버튼 활성화 상태 업데이트
     document.querySelectorAll('.filter-button').forEach(btn => {
         btn.classList.remove('active');
     });
     event.target.classList.add('active');
-    
     renderTodos();
 }
 
 // 기간 설정
 function setPeriod(period) {
     currentPeriod = period;
-    
-    // 기간 버튼 활성화 상태 업데이트
     document.querySelectorAll('.period-button').forEach(btn => {
         btn.classList.remove('active');
     });
     event.target.classList.add('active');
-    
     renderTodos();
 }
 
 // 완료 상태 토글
-function toggleComplete(index) {
-    todos[index].completed = !todos[index].completed;
+async function toggleComplete(index) {
+    const todo = todos[index];
+    const newCompleted = !todo.completed;
     
-    // 완료 시 완료 시간 저장, 미완료 시 완료 시간 제거
-    if (todos[index].completed) {
-        todos[index].completedDate = Date.now();
-    } else {
-        delete todos[index].completedDate;
-    }
-    
-    // 수정일 업데이트
-    todos[index].modifiedDate = Date.now();
-    
-    localStorage.setItem('todos', JSON.stringify(todos));
-    renderTodos();
+    await updateTodo(todo.id, {
+        completed: newCompleted
+    });
 }
 
 // 할일 추가
-function addTodo() {
+async function addTodo() {
     const text = todoInput.value.trim();
     const dueDateInput = document.getElementById('dueDateInput');
     const dueDateValue = dueDateInput.value;
@@ -420,41 +468,21 @@ function addTodo() {
         return;
     }
 
-    const createdDate = Date.now();
+    const dueDate = dueDateValue ? new Date(dueDateValue) : new Date();
+    dueDate.setHours(0, 0, 0, 0);
+
     const newTodo = {
         text: text,
-        id: createdDate,
-        completed: false,
-        createdDate: createdDate
+        details: detailsValue || null,
+        dueDate: dueDate.getTime()
     };
 
-    // 세부내용 추가
-    if (detailsValue) {
-        newTodo.details = detailsValue;
-    }
-
-    // 완료 예정일 처리: 입력값이 있으면 사용, 없으면 오늘로 설정
-    let dueDate;
-    if (dueDateValue) {
-        dueDate = new Date(dueDateValue);
-    } else {
-        // 오늘로 설정
-        dueDate = new Date();
-    }
-    // 시간을 제거하고 자정으로 설정
-    dueDate.setHours(0, 0, 0, 0);
-    newTodo.dueDate = dueDate.getTime();
-
-    todos.push(newTodo);
-
-    localStorage.setItem('todos', JSON.stringify(todos));
+    await createTodo(newTodo);
+    
     todoInput.value = '';
     detailsInput.value = '';
     detailsInputSection.classList.add('hidden');
-    // 오늘 날짜로 기본값 설정
-    const today = new Date();
-    dueDateInput.value = formatDateForInput(today.getTime());
-    renderTodos();
+    dueDateInput.value = formatDateForInput(Date.now());
 }
 
 // 세부내용 입력 섹션 토글
@@ -484,18 +512,17 @@ function closeDetailsModal() {
 }
 
 // 세부내용 저장
-function saveDetails() {
+async function saveDetails() {
     if (currentEditingIndex === -1) return;
     
     const detailsEdit = document.getElementById('detailsEdit');
     const detailsValue = detailsEdit.value.trim();
+    const todo = todos[currentEditingIndex];
     
-    todos[currentEditingIndex].details = detailsValue;
-    // 수정일 업데이트
-    todos[currentEditingIndex].modifiedDate = Date.now();
+    await updateTodo(todo.id, {
+        details: detailsValue
+    });
     
-    localStorage.setItem('todos', JSON.stringify(todos));
-    renderTodos();
     closeDetailsModal();
 }
 
@@ -510,55 +537,61 @@ function formatDateForInput(timestamp) {
 }
 
 // 할일 삭제
-function deleteTodo(index) {
+async function deleteTodo(index) {
     if (confirm(t.confirmDelete)) {
-        todos.splice(index, 1);
-        localStorage.setItem('todos', JSON.stringify(todos));
-        renderTodos();
+        const todo = todos[index];
+        await deleteTodoById(todo.id);
     }
 }
 
 // 완료된 항목 모두 삭제
-function clearCompleted() {
+async function clearCompleted() {
     const completedCount = todos.filter(todo => todo.completed).length;
     if (completedCount === 0) return;
     
     if (confirm(t.confirmClear(completedCount))) {
-        todos = todos.filter(todo => !todo.completed);
-        localStorage.setItem('todos', JSON.stringify(todos));
-        renderTodos();
+        await clearCompletedTodos();
     }
 }
 
-// 파일로 저장
-function saveToFile() {
+// 엑셀 파일로 저장
+function saveToExcel() {
     if (todos.length === 0) {
         alert(t.alertNoSave);
         return;
     }
 
-    const dataStr = JSON.stringify(todos, null, 2);
-    const dataBlob = new Blob([dataStr], { type: 'application/json' });
-    const url = URL.createObjectURL(dataBlob);
+    const excelData = todos.map(todo => ({
+        '할일': todo.text || '',
+        '상태': todo.completed ? '완료' : '진행중',
+        '작성일': todo.createdDate ? formatDateTime(todo.createdDate) : '',
+        '완료 예정일': todo.dueDate ? formatDate(todo.dueDate) : '',
+        '완료일': todo.completedDate ? formatDateTime(todo.completedDate) : '',
+        '수정일': todo.modifiedDate ? formatDateTime(todo.modifiedDate) : '',
+        '세부내용': todo.details || '',
+        '지연여부': (!todo.completed && todo.dueDate && isOverdue(todo.dueDate)) ? '지연됨' : ''
+    }));
+
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(excelData);
+    ws['!cols'] = [
+        { wch: 30 }, { wch: 10 }, { wch: 20 }, { wch: 15 },
+        { wch: 20 }, { wch: 20 }, { wch: 50 }, { wch: 10 }
+    ];
     
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `todo-list-${new Date().toISOString().split('T')[0]}.json`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    XLSX.utils.book_append_sheet(wb, ws, '할일 목록');
+    XLSX.writeFile(wb, `todo-list-${new Date().toISOString().split('T')[0]}.xlsx`);
     
-    alert(t.alertSaveSuccess);
+    alert(t.alertSaveExcelSuccess);
 }
 
 // 파일에서 불러오기
-function loadFromFile(event) {
+async function loadFromFile(event) {
     const file = event.target.files[0];
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onload = function(e) {
+    reader.onload = async function(e) {
         try {
             const loadedTodos = JSON.parse(e.target.result);
             
@@ -567,22 +600,21 @@ function loadFromFile(event) {
             }
 
             if (confirm(t.confirmLoad(loadedTodos.length))) {
-                // 기존 할일과 병합 (호환성을 위해 createdDate가 없으면 추가, dueDate 시간 제거)
-                const mergedTodos = loadedTodos.map(todo => {
-                    if (!todo.createdDate) {
-                        todo.createdDate = Date.now();
-                    }
-                    // 완료 예정일이 있으면 시간을 제거하고 자정으로 설정
+                for (const todo of loadedTodos) {
+                    let dueDate = null;
                     if (todo.dueDate) {
-                        const dueDate = new Date(todo.dueDate);
-                        dueDate.setHours(0, 0, 0, 0);
-                        todo.dueDate = dueDate.getTime();
+                        const date = new Date(todo.dueDate);
+                        date.setHours(0, 0, 0, 0);
+                        dueDate = date.getTime();
                     }
-                    return todo;
-                });
-                todos = [...todos, ...mergedTodos];
-                localStorage.setItem('todos', JSON.stringify(todos));
-                renderTodos();
+                    
+                    await createTodo({
+                        text: todo.text,
+                        details: todo.details || null,
+                        completed: todo.completed || false,
+                        dueDate: dueDate
+                    });
+                }
                 alert(t.alertLoadSuccess);
             }
         } catch (error) {
@@ -590,8 +622,6 @@ function loadFromFile(event) {
         }
     };
     reader.readAsText(file);
-    
-    // 같은 파일을 다시 선택할 수 있도록 초기화
     event.target.value = '';
 }
 
@@ -605,31 +635,13 @@ todoInput.addEventListener('keypress', (e) => {
     }
 });
 
-// 기존 데이터 호환성 처리: createdDate가 없는 항목에 현재 시간 추가
-todos = todos.map(todo => {
-    if (!todo.createdDate) {
-        todo.createdDate = Date.now();
-    }
-    // 완료 예정일이 있으면 시간을 제거하고 자정으로 설정
-    if (todo.dueDate) {
-        const dueDate = new Date(todo.dueDate);
-        dueDate.setHours(0, 0, 0, 0);
-        todo.dueDate = dueDate.getTime();
-    }
-    return todo;
-});
-if (todos.length > 0) {
-    localStorage.setItem('todos', JSON.stringify(todos));
-}
-
-// 완료 예정일 입력 필드 기본값 설정 (오늘)
+// 완료 예정일 입력 필드 기본값 설정
 const dueDateInput = document.getElementById('dueDateInput');
 if (dueDateInput) {
-    const today = new Date();
-    dueDateInput.value = formatDateForInput(today.getTime());
+    dueDateInput.value = formatDateForInput(Date.now());
 }
 
 // 초기 렌더링
 initializeUI();
-renderTodos();
+fetchTodos();
 

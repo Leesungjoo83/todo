@@ -1,2 +1,5 @@
-/1.js
-/test.js
+node_modules/
+.env
+*.log
+.DS_Store
+Thumbs.db
