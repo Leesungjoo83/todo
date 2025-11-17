@@ -1,0 +1,2 @@
+check-db.js를 database.js로 통합
+
