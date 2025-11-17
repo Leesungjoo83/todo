@@ -129,6 +129,14 @@ function isOverdue(dueDate) {
     return due < today;
 }
 
+// HTML 이스케이프 함수 (XSS 방지)
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
 // 텍스트 데이터
 const t = {
     title: '📝 할일 목록',
@@ -339,7 +347,7 @@ function renderCalendar() {
                 const overdue = !todo.completed && todo.dueDate && isOverdue(todo.dueDate);
                 dayHTML += `
                     <div class="calendar-todo-item ${completed ? 'completed' : ''} ${overdue ? 'overdue' : ''}" onclick="openDetailsModal(${todoIndex})">
-                        <span class="calendar-todo-text">${todo.text}</span>
+                        <span class="calendar-todo-text">${escapeHtml(todo.text)}</span>
                     </div>
                 `;
             });
@@ -375,7 +383,7 @@ function renderTodos() {
         const message = currentFilter === 'all' ? t.emptyAll
             : currentFilter === 'active' ? t.emptyActive
             : t.emptyCompleted;
-        todoList.innerHTML = `<li class="empty-message">${message}</li>`;
+        todoList.innerHTML = `<li class="empty-message">${escapeHtml(message)}</li>`;
         updateStats();
         return;
     }
@@ -403,12 +411,12 @@ function renderTodos() {
                     onchange="toggleComplete(${todoIndex})"
                 >
                 <div class="todo-text-wrapper" onclick="openDetailsModal(${todoIndex})">
-                    <span class="todo-text">${todo.text}${hasDetails ? ' <span class="has-details-icon">📄</span>' : ''}</span>
+                    <span class="todo-text">${escapeHtml(todo.text)}${hasDetails ? ' <span class="has-details-icon">📄</span>' : ''}</span>
                     <div class="todo-dates">
-                        <span class="todo-date created-date">${t.createdDate}: ${createdDateStr}</span>
-                        ${dueDateStr ? `<span class="todo-date due-date ${overdue ? 'overdue' : ''}">${t.dueDate}: ${dueDateStr}${overdue ? ` (${t.overdue})` : ''}</span>` : ''}
-                        ${modifiedDateStr ? `<span class="todo-date modified-date">${t.modifiedDate}: ${modifiedDateStr}</span>` : ''}
-                        ${completedDateStr ? `<span class="todo-date completed-date">${t.completedDate}: ${completedDateStr}</span>` : ''}
+                        <span class="todo-date created-date">${escapeHtml(t.createdDate)}: ${escapeHtml(createdDateStr)}</span>
+                        ${dueDateStr ? `<span class="todo-date due-date ${overdue ? 'overdue' : ''}">${escapeHtml(t.dueDate)}: ${escapeHtml(dueDateStr)}${overdue ? ` (${escapeHtml(t.overdue)})` : ''}</span>` : ''}
+                        ${modifiedDateStr ? `<span class="todo-date modified-date">${escapeHtml(t.modifiedDate)}: ${escapeHtml(modifiedDateStr)}</span>` : ''}
+                        ${completedDateStr ? `<span class="todo-date completed-date">${escapeHtml(t.completedDate)}: ${escapeHtml(completedDateStr)}</span>` : ''}
                     </div>
                 </div>
             </div>

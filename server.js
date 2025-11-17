@@ -161,7 +161,7 @@ app.put('/api/todos/:id', async (req, res) => {
     res.json(convertBigIntToNumber(updatedTodo[0]));
   } catch (err) {
     console.error('할일 수정 오류:', err);
-    res.status(500).json({ error: '할일 수정 중 오류가 발생했습니다.' });
+    res.status(500).json({ error: getDbErrorMessage(err), details: err.message });
   } finally {
     if (conn) conn.release();
   }
@@ -183,7 +183,7 @@ app.delete('/api/todos/:id', async (req, res) => {
     res.json({ message: '할일이 삭제되었습니다.' });
   } catch (err) {
     console.error('할일 삭제 오류:', err);
-    res.status(500).json({ error: '할일 삭제 중 오류가 발생했습니다.' });
+    res.status(500).json({ error: getDbErrorMessage(err), details: err.message });
   } finally {
     if (conn) conn.release();
   }
@@ -198,7 +198,7 @@ app.delete('/api/todos', async (req, res) => {
     res.json({ message: `${result.affectedRows}개의 완료된 할일이 삭제되었습니다.` });
   } catch (err) {
     console.error('완료된 할일 삭제 오류:', err);
-    res.status(500).json({ error: '완료된 할일 삭제 중 오류가 발생했습니다.' });
+    res.status(500).json({ error: getDbErrorMessage(err), details: err.message });
   } finally {
     if (conn) conn.release();
   }
