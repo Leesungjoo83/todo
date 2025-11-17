@@ -14,87 +14,87 @@ let currentPeriod = 'all';
 
 // API 호출 함수들
 async function fetchTodos() {
-  try {
-    const response = await fetch(`${API_BASE_URL}/todos`);
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error || '할일 목록을 불러오는데 실패했습니다.');
+    try {
+        const response = await fetch(`${API_BASE_URL}/todos`);
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.error || '할일 목록을 불러오는데 실패했습니다.');
+        }
+        todos = await response.json();
+        renderTodos();
+    } catch (error) {
+        console.error('할일 목록 불러오기 오류:', error);
+        if (error.message.includes('Failed to fetch') || error.message.includes('네트워크')) {
+            alert('서버에 연결할 수 없습니다. 서버가 실행 중인지 확인해주세요.');
+        } else if (!error.message.includes('데이터베이스')) {
+            console.error('오류:', error.message);
+        }
     }
-    todos = await response.json();
-    renderTodos();
-  } catch (error) {
-    console.error('할일 목록 불러오기 오류:', error);
-    if (error.message.includes('Failed to fetch') || error.message.includes('네트워크')) {
-      alert('서버에 연결할 수 없습니다. 서버가 실행 중인지 확인해주세요.');
-    } else if (!error.message.includes('데이터베이스')) {
-      console.error('오류:', error.message);
-    }
-  }
 }
 
 async function createTodo(todoData) {
-  try {
-    const response = await fetch(`${API_BASE_URL}/todos`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(todoData),
-    });
-    
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error || '할일 추가에 실패했습니다.');
+    try {
+        const response = await fetch(`${API_BASE_URL}/todos`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(todoData),
+        });
+        
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.error || '할일 추가에 실패했습니다.');
+        }
+        
+        await fetchTodos();
+    } catch (error) {
+        console.error('할일 추가 오류:', error);
+        alert(error.message || '할일 추가에 실패했습니다.');
     }
-    
-    await fetchTodos();
-  } catch (error) {
-    console.error('할일 추가 오류:', error);
-    alert(error.message || '할일 추가에 실패했습니다.');
-  }
 }
 
 async function updateTodo(id, todoData) {
-  try {
-    const response = await fetch(`${API_BASE_URL}/todos/${id}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(todoData),
-    });
-    if (!response.ok) throw new Error('할일 수정에 실패했습니다.');
-    await fetchTodos();
-  } catch (error) {
-    console.error('할일 수정 오류:', error);
-    alert('할일 수정에 실패했습니다.');
-  }
+    try {
+        const response = await fetch(`${API_BASE_URL}/todos/${id}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(todoData),
+        });
+        if (!response.ok) throw new Error('할일 수정에 실패했습니다.');
+        await fetchTodos();
+    } catch (error) {
+        console.error('할일 수정 오류:', error);
+        alert('할일 수정에 실패했습니다.');
+    }
 }
 
 async function deleteTodoById(id) {
-  try {
-    const response = await fetch(`${API_BASE_URL}/todos/${id}`, {
-      method: 'DELETE',
-    });
-    if (!response.ok) throw new Error('할일 삭제에 실패했습니다.');
-    await fetchTodos();
-  } catch (error) {
-    console.error('할일 삭제 오류:', error);
-    alert('할일 삭제에 실패했습니다.');
-  }
+    try {
+        const response = await fetch(`${API_BASE_URL}/todos/${id}`, {
+            method: 'DELETE',
+        });
+        if (!response.ok) throw new Error('할일 삭제에 실패했습니다.');
+        await fetchTodos();
+    } catch (error) {
+        console.error('할일 삭제 오류:', error);
+        alert('할일 삭제에 실패했습니다.');
+    }
 }
 
 async function clearCompletedTodos() {
-  try {
-    const response = await fetch(`${API_BASE_URL}/todos`, {
-      method: 'DELETE',
-    });
-    if (!response.ok) throw new Error('완료된 할일 삭제에 실패했습니다.');
-    await fetchTodos();
-  } catch (error) {
-    console.error('완료된 할일 삭제 오류:', error);
-    alert('완료된 할일 삭제에 실패했습니다.');
-  }
+    try {
+        const response = await fetch(`${API_BASE_URL}/todos`, {
+            method: 'DELETE',
+        });
+        if (!response.ok) throw new Error('완료된 할일 삭제에 실패했습니다.');
+        await fetchTodos();
+    } catch (error) {
+        console.error('완료된 할일 삭제 오류:', error);
+        alert('완료된 할일 삭제에 실패했습니다.');
+    }
 }
 
 // 날짜와 시간 포맷팅 함수 (24시간제)
@@ -641,7 +641,207 @@ if (dueDateInput) {
     dueDateInput.value = formatDateForInput(Date.now());
 }
 
-// 초기 렌더링
-initializeUI();
-fetchTodos();
+// 채팅 관련 함수들
+// 채팅 토글
+function toggleChat() {
+    const chatContainer = document.getElementById('chatContainer');
+    chatContainer.classList.toggle('hidden');
+    
+    if (!chatContainer.classList.contains('hidden')) {
+        // 채팅이 열릴 때 스크롤을 맨 아래로
+        setTimeout(() => {
+            scrollChatToBottom();
+        }, 100);
+    }
+}
+
+// 채팅 스크롤을 맨 아래로
+function scrollChatToBottom() {
+    const chatMessages = document.getElementById('chatMessages');
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+// 현재 시간 포맷팅 (채팅용)
+function formatChatTime() {
+    const now = new Date();
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    return `${hours}:${minutes}`;
+}
+
+// 채팅 메시지 추가 (XSS 방지: innerHTML 사용하지 않음)
+function addChatMessage(message, isUser = true) {
+    const chatMessagesContainer = document.getElementById('chatMessages');
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `chat-message ${isUser ? 'user-message' : 'bot-message'}`;
+    
+    const time = formatChatTime();
+    
+    // 메시지 내용 컨테이너 생성
+    const messageContent = document.createElement('div');
+    messageContent.className = 'message-content';
+    
+    // 안전하게 텍스트 처리: 줄바꿈을 처리하여 텍스트 노드와 <br> 요소로 구성
+    // innerHTML 사용하지 않음으로 XSS 공격 완전 차단
+    const lines = message.split('\n');
+    lines.forEach((line, index) => {
+        // 각 줄을 텍스트 노드로 추가 (XSS 방지)
+        if (line) {
+            messageContent.appendChild(document.createTextNode(line));
+        }
+        // 마지막 줄이 아니면 <br> 요소 추가
+        if (index < lines.length - 1) {
+            messageContent.appendChild(document.createElement('br'));
+        }
+    });
+    
+    // 시간 표시 생성
+    const messageTime = document.createElement('div');
+    messageTime.className = 'message-time';
+    messageTime.textContent = time;
+    
+    // DOM에 안전하게 추가
+    messageDiv.appendChild(messageContent);
+    messageDiv.appendChild(messageTime);
+    chatMessagesContainer.appendChild(messageDiv);
+    
+    scrollChatToBottom();
+}
+
+// 자연어에서 날짜 파싱 시도
+function parseDateFromText(text) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    // "내일", "모레" 같은 키워드
+    if (text.includes('내일') || text.includes('tomorrow')) {
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        return tomorrow.getTime();
+    }
+    if (text.includes('모레')) {
+        const dayAfter = new Date(today);
+        dayAfter.setDate(dayAfter.getDate() + 2);
+        return dayAfter.getTime();
+    }
+    
+    // "다음 주", "다음달" 같은 키워드
+    if (text.includes('다음 주') || text.includes('next week')) {
+        const nextWeek = new Date(today);
+        nextWeek.setDate(nextWeek.getDate() + 7);
+        return nextWeek.getTime();
+    }
+    if (text.includes('다음 달') || text.includes('next month')) {
+        const nextMonth = new Date(today);
+        nextMonth.setMonth(nextMonth.getMonth() + 1);
+        return nextMonth.getTime();
+    }
+    
+    // 날짜 패턴 (예: "12월 25일", "12/25", "2024-12-25")
+    const datePatterns = [
+        /(\d{1,2})\/(\d{1,2})/,  // MM/DD
+        /(\d{4})-(\d{1,2})-(\d{1,2})/,  // YYYY-MM-DD
+        /(\d{1,2})월\s*(\d{1,2})일/,  // M월 D일
+    ];
+    
+    for (const pattern of datePatterns) {
+        const match = text.match(pattern);
+        if (match) {
+            let date;
+            if (pattern === datePatterns[0]) { // MM/DD
+                const month = parseInt(match[1]) - 1;
+                const day = parseInt(match[2]);
+                date = new Date(today.getFullYear(), month, day);
+            } else if (pattern === datePatterns[1]) { // YYYY-MM-DD
+                date = new Date(match[1], parseInt(match[2]) - 1, match[3]);
+            } else if (pattern === datePatterns[2]) { // M월 D일
+                const month = parseInt(match[1]) - 1;
+                const day = parseInt(match[2]);
+                date = new Date(today.getFullYear(), month, day);
+            }
+            
+            if (date && !isNaN(date.getTime())) {
+                date.setHours(0, 0, 0, 0);
+                return date.getTime();
+            }
+        }
+    }
+    
+    return null;
+}
+
+// 채팅 메시지 전송
+async function sendChatMessage() {
+    const chatInput = document.getElementById('chatInput');
+    const message = chatInput.value.trim();
+    
+    if (message === '') {
+        return;
+    }
+    
+    // 사용자 메시지 추가
+    addChatMessage(message, true);
+    chatInput.value = '';
+    
+    // 할일 텍스트에서 날짜 추출 시도
+    const dueDate = parseDateFromText(message);
+    
+    // 할일 텍스트 정제 (날짜 키워드 제거)
+    let todoText = message
+        .replace(/\s*(내일|tomorrow|모레|다음 주|next week|다음 달|next month)\s*/gi, '')
+        .replace(/\d{1,2}\/\d{1,2}/g, '')
+        .replace(/\d{4}-\d{1,2}-\d{1,2}/g, '')
+        .replace(/\d{1,2}월\s*\d{1,2}일/g, '')
+        .trim();
+    
+    if (todoText === '') {
+        todoText = message; // 날짜만 있었으면 원본 사용
+    }
+    
+    // 할일 추가
+    try {
+        const newTodo = {
+            text: todoText,
+            details: null,
+            dueDate: dueDate || new Date().getTime()
+        };
+        
+        await createTodo(newTodo);
+        
+        // 봇 응답
+        const dueDateStr = dueDate ? formatDate(dueDate) : formatDate(Date.now());
+        addChatMessage(`할일이 추가되었습니다! 📝\n"${todoText}"\n완료 예정일: ${dueDateStr}`, false);
+    } catch (error) {
+        addChatMessage('할일 추가 중 오류가 발생했습니다. 다시 시도해주세요.', false);
+    }
+}
+
+// 초기화
+function initializeApp() {
+    initializeUI();
+    fetchTodos();
+    
+    // 채팅 입력 필드 Enter 키 이벤트
+    const chatInput = document.getElementById('chatInput');
+    if (chatInput) {
+        chatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendChatMessage();
+            }
+        });
+    }
+    
+    // 봇 첫 메시지 시간 설정
+    const botMessageTime = document.getElementById('botMessageTime');
+    if (botMessageTime) {
+        botMessageTime.textContent = formatChatTime();
+    }
+}
+
+// 애플리케이션 시작
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeApp);
+} else {
+    initializeApp();
+}
 

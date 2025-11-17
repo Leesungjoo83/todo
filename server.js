@@ -46,6 +46,20 @@ function convertBigIntToNumber(obj) {
   return obj;
 }
 
+// 데이터베이스 에러 메시지 생성 함수
+function getDbErrorMessage(err) {
+  if (err.code === 'ER_NO_SUCH_TABLE') {
+    return '데이터베이스 테이블이 없습니다. database.sql 파일을 실행해주세요.';
+  }
+  if (err.code === 'ER_BAD_DB_ERROR') {
+    return '데이터베이스가 없습니다. database.sql 파일을 실행해주세요.';
+  }
+  if (err.code === 'ECONNREFUSED' || err.code === 'ETIMEDOUT') {
+    return '데이터베이스 연결에 실패했습니다. MariaDB가 실행 중인지 확인해주세요.';
+  }
+  return err.message || '데이터베이스 작업 중 오류가 발생했습니다.';
+}
+
 // 모든 할일 조회
 app.get('/api/todos', async (req, res) => {
   let conn;
@@ -55,14 +69,7 @@ app.get('/api/todos', async (req, res) => {
     res.json(convertBigIntToNumber(rows));
   } catch (err) {
     console.error('할일 조회 오류:', err);
-    const errorMessage = err.code === 'ER_NO_SUCH_TABLE' 
-      ? '데이터베이스 테이블이 없습니다. database.sql 파일을 실행해주세요.'
-      : err.code === 'ER_BAD_DB_ERROR'
-      ? '데이터베이스가 없습니다. database.sql 파일을 실행해주세요.'
-      : err.code === 'ECONNREFUSED' || err.code === 'ETIMEDOUT'
-      ? '데이터베이스 연결에 실패했습니다. MariaDB가 실행 중인지 확인해주세요.'
-      : err.message || '할일 조회 중 오류가 발생했습니다.';
-    res.status(500).json({ error: errorMessage, details: err.message });
+    res.status(500).json({ error: getDbErrorMessage(err), details: err.message });
   } finally {
     if (conn) conn.release();
   }
@@ -80,14 +87,7 @@ app.get('/api/todos/:id', async (req, res) => {
     res.json(convertBigIntToNumber(rows[0]));
   } catch (err) {
     console.error('할일 조회 오류:', err);
-    const errorMessage = err.code === 'ER_NO_SUCH_TABLE' 
-      ? '데이터베이스 테이블이 없습니다. database.sql 파일을 실행해주세요.'
-      : err.code === 'ER_BAD_DB_ERROR'
-      ? '데이터베이스가 없습니다. database.sql 파일을 실행해주세요.'
-      : err.code === 'ECONNREFUSED' || err.code === 'ETIMEDOUT'
-      ? '데이터베이스 연결에 실패했습니다. MariaDB가 실행 중인지 확인해주세요.'
-      : err.message || '할일 조회 중 오류가 발생했습니다.';
-    res.status(500).json({ error: errorMessage, details: err.message });
+    res.status(500).json({ error: getDbErrorMessage(err), details: err.message });
   } finally {
     if (conn) conn.release();
   }
@@ -116,14 +116,7 @@ app.post('/api/todos', async (req, res) => {
     res.status(201).json(convertBigIntToNumber(newTodo[0]));
   } catch (err) {
     console.error('할일 추가 오류:', err);
-    const errorMessage = err.code === 'ER_NO_SUCH_TABLE' 
-      ? '데이터베이스 테이블이 없습니다. database.sql 파일을 실행해주세요.'
-      : err.code === 'ER_BAD_DB_ERROR'
-      ? '데이터베이스가 없습니다. database.sql 파일을 실행해주세요.'
-      : err.code === 'ECONNREFUSED' || err.code === 'ETIMEDOUT'
-      ? '데이터베이스 연결에 실패했습니다. MariaDB가 실행 중인지 확인해주세요.'
-      : err.message || '할일 추가 중 오류가 발생했습니다.';
-    res.status(500).json({ error: errorMessage, details: err.message });
+    res.status(500).json({ error: getDbErrorMessage(err), details: err.message });
   } finally {
     if (conn) conn.release();
   }
