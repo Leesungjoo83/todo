@@ -5,7 +5,7 @@ const pool = mariadb.createPool({
   host: 'localhost',
   port: 3307,
   user: 'root',
-  password: '1234',
+  password: 'qwer1257',
   database: 'todo',
   connectionLimit: 5
 });
