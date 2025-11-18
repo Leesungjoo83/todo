@@ -103,24 +103,95 @@ fi
 
 # 5. .env 파일 설정
 log_step "5. .env 파일 설정"
+
+# .env 파일이 없으면 생성
 if [ ! -f ".env" ]; then
     if [ -f "env.example" ]; then
         log_info "env.example을 기반으로 .env 파일을 생성합니다..."
         cp env.example .env
+        log_info "✅ .env 파일 생성 완료"
         log_warn "⚠️  .env 파일을 생성했습니다. 반드시 수정하여 실제 데이터베이스 정보를 입력하세요!"
+        echo ""
+        log_info "필수 환경변수:"
+        log_info "  - DB_HOST: RDS 엔드포인트 또는 localhost"
+        log_info "  - DB_PORT: 3307 (기본값)"
+        log_info "  - DB_USER: 데이터베이스 사용자명"
+        log_info "  - DB_PASSWORD: 데이터베이스 비밀번호"
+        log_info "  - DB_NAME: todo (기본값)"
+        echo ""
         log_info "편집 명령어: nano .env"
         read -p ".env 파일을 지금 편집하시겠습니까? (y/N): " -n 1 -r
         echo
         if [[ $REPLY =~ ^[Yy]$ ]]; then
             nano .env
+        else
+            log_warn "⚠️  .env 파일을 수동으로 편집해야 합니다!"
+            log_info "다음 명령어로 편집: nano .env"
+            read -p "계속하시겠습니까? (Y/n): " -n 1 -r
+            echo
+            if [[ $REPLY =~ ^[Nn]$ ]]; then
+                log_error "배포가 취소되었습니다. .env 파일을 설정한 후 다시 실행하세요."
+                exit 1
+            fi
         fi
     else
         log_error "env.example 파일이 없습니다."
-        log_warn ".env 파일을 수동으로 생성하세요."
+        log_error "필수: .env 파일을 생성하세요."
+        log_info ".env 파일 예시:"
+        echo "PORT=3000"
+        echo "DB_HOST=your-rds-endpoint.xxxxx.ap-northeast-2.rds.amazonaws.com"
+        echo "DB_PORT=3307"
+        echo "DB_USER=root"
+        echo "DB_PASSWORD=your_password"
+        echo "DB_NAME=todo"
+        echo "DB_CONNECTION_LIMIT=5"
+        exit 1
     fi
 else
     log_info "✅ .env 파일이 이미 존재합니다."
 fi
+
+# .env 파일 존재 확인 (필수)
+if [ ! -f ".env" ]; then
+    log_error ".env 파일이 없습니다. 배포를 계속할 수 없습니다."
+    exit 1
+fi
+
+# .env 파일 필수 변수 확인
+log_info ".env 파일의 필수 변수 확인 중..."
+
+# .env 파일 읽기 및 검증
+source .env 2>/dev/null || true
+
+REQUIRED_VARS=("DB_HOST" "DB_USER" "DB_PASSWORD" "DB_NAME")
+MISSING_VARS=()
+
+for var in "${REQUIRED_VARS[@]}"; do
+    value=$(grep "^${var}=" .env 2>/dev/null | cut -d'=' -f2- | tr -d ' ' || true)
+    if [ -z "$value" ] || [ "$value" = "your_password_here" ] || [ "$value" = "your-database-instance" ]; then
+        MISSING_VARS+=("$var")
+    fi
+done
+
+if [ ${#MISSING_VARS[@]} -gt 0 ]; then
+    log_warn "⚠️  다음 환경변수가 설정되지 않았거나 기본값입니다:"
+    for var in "${MISSING_VARS[@]}"; do
+        log_warn "  - $var"
+    done
+    log_warn "데이터베이스 연결에 실패할 수 있습니다."
+    read -p "계속하시겠습니까? (y/N): " -n 1 -r
+    echo
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        log_error "배포가 취소되었습니다. .env 파일을 수정한 후 다시 실행하세요."
+        exit 1
+    fi
+else
+    log_info "✅ 필수 환경변수 확인 완료"
+fi
+
+# .env 파일 권한 확인
+chmod 600 .env 2>/dev/null || true
+log_info "✅ .env 파일 권한 설정 완료 (600)"
 
 # 6. 의존성 설치
 log_step "6. 의존성 설치"
@@ -146,15 +217,66 @@ startup_output=$(pm2 startup)
 log_info "다음 명령어를 실행하세요 (sudo 권한 필요):"
 echo "$startup_output" | grep "sudo"
 
-# 9. 애플리케이션 시작
-log_step "9. 애플리케이션 시작"
-if pm2 list | grep -q "$APP_NAME"; then
-    log_info "기존 프로세스를 재시작합니다..."
-    pm2 restart "$APP_NAME" --update-env
-else
-    log_info "새로운 프로세스를 시작합니다..."
-    pm2 start server.js --name "$APP_NAME" --update-env
+# 9. 포트 충돌 해결 및 애플리케이션 시작
+log_step "9. 포트 충돌 해결 및 애플리케이션 시작"
+
+# 포트 3000 사용 여부 확인
+PORT_IN_USE=false
+if command -v lsof &> /dev/null; then
+    if lsof -ti:3000 &> /dev/null; then
+        PORT_IN_USE=true
+    fi
+elif command -v ss &> /dev/null; then
+    if ss -ltnp | grep -q ':3000'; then
+        PORT_IN_USE=true
+    fi
+elif command -v netstat &> /dev/null; then
+    if netstat -tlnp 2>/dev/null | grep -q ':3000'; then
+        PORT_IN_USE=true
+    fi
 fi
+
+# 기존 PM2 프로세스 확인
+if pm2 list | grep -q "$APP_NAME"; then
+    log_info "기존 PM2 프로세스를 정리합니다..."
+    pm2 stop "$APP_NAME" 2>/dev/null || true
+    pm2 delete "$APP_NAME" 2>/dev/null || true
+    sleep 1
+fi
+
+# 포트를 사용하는 프로세스 종료
+if [ "$PORT_IN_USE" = true ]; then
+    log_warn "포트 3000이 사용 중입니다. 기존 프로세스를 종료합니다..."
+    if command -v lsof &> /dev/null; then
+        PORT_PID=$(lsof -ti:3000 2>/dev/null || true)
+        if [ -n "$PORT_PID" ]; then
+            kill -9 $PORT_PID 2>/dev/null || true
+            sleep 2
+        fi
+    elif command -v ss &> /dev/null; then
+        PORT_PID=$(ss -ltnp 2>/dev/null | grep ':3000' | awk '{print $6}' | cut -d, -f2 | cut -d= -f2 | head -1 || true)
+        if [ -n "$PORT_PID" ] && [ "$PORT_PID" != "-" ]; then
+            kill -9 $PORT_PID 2>/dev/null || true
+            sleep 2
+        fi
+    fi
+    log_info "✅ 포트 정리 완료"
+fi
+
+# .env 파일 최종 확인
+log_info ".env 파일 최종 확인 중..."
+if [ ! -f ".env" ]; then
+    log_error ".env 파일이 없습니다. 애플리케이션을 시작할 수 없습니다."
+    exit 1
+fi
+
+# 애플리케이션 시작 (.env 파일 사용)
+log_info "새로운 프로세스를 시작합니다 (.env 파일 사용)..."
+log_info "환경변수 파일: .env"
+
+# PM2가 .env 파일을 자동으로 로드하도록 시작
+pm2 start server.js --name "$APP_NAME" --update-env --env production 2>/dev/null || \
+pm2 start server.js --name "$APP_NAME" --update-env
 
 # PM2 저장
 pm2 save
@@ -167,13 +289,24 @@ log_step "10. 배포 상태 확인"
 pm2 status
 
 # 11. 헬스 체크
-log_step "11. 헬스 체크"
+log_step "11. 헬스 체크 및 환경변수 확인"
 sleep 2
+
+# 환경변수 로드 확인
+log_info "환경변수 로드 확인 중..."
+if node -e "require('dotenv').config(); console.log('DB_HOST:', process.env.DB_HOST || 'NOT SET')" 2>/dev/null | grep -q "NOT SET"; then
+    log_warn "⚠️  환경변수가 제대로 로드되지 않을 수 있습니다."
+else
+    log_info "✅ 환경변수 로드 확인 완료"
+fi
+
+# API 헬스 체크
 if curl -s http://localhost:3000/api/todos > /dev/null; then
     log_info "✅ 애플리케이션이 정상적으로 응답합니다!"
 else
     log_warn "⚠️  애플리케이션이 응답하지 않을 수 있습니다."
     log_info "로그를 확인하세요: pm2 logs $APP_NAME"
+    log_info ".env 파일을 확인하세요: cat .env"
 fi
 
 # 12. 최근 로그 출력

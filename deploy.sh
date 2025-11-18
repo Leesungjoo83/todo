@@ -40,10 +40,25 @@ fi
 cd "$PROJECT_DIR"
 log_info "프로젝트 디렉토리로 이동: $PROJECT_DIR"
 
-# .env 파일 확인
+# .env 파일 확인 (필수)
 if [ ! -f ".env" ]; then
-    log_warn ".env 파일이 없습니다. env.example을 참고하여 생성하세요."
-    log_warn "배포를 계속하지만 환경변수가 설정되지 않을 수 있습니다."
+    log_error ".env 파일이 없습니다!"
+    if [ -f "env.example" ]; then
+        log_info "env.example을 기반으로 .env 파일을 생성합니다..."
+        cp env.example .env
+        chmod 600 .env
+        log_warn "⚠️  .env 파일을 생성했습니다. 반드시 수정하여 실제 데이터베이스 정보를 입력하세요!"
+        log_info "편집 명령어: nano .env"
+        log_error "배포를 계속할 수 없습니다. .env 파일을 설정한 후 다시 실행하세요."
+        exit 1
+    else
+        log_error ".env 파일이 없습니다. 배포를 계속할 수 없습니다."
+        exit 1
+    fi
+else
+    log_info "✅ .env 파일 확인 완료"
+    # .env 파일 권한 확인
+    chmod 600 .env 2>/dev/null || true
 fi
 
 # Git 저장소 확인
@@ -78,20 +93,88 @@ else
     log_info "PM2 버전: $pm2_version"
 fi
 
-# PM2로 애플리케이션 재시작
-log_info "🔄 애플리케이션을 재시작합니다..."
+# 포트 3000 충돌 해결
+log_info "🔍 포트 3000 사용 여부 확인 중..."
+
+# 포트 3000을 사용하는 프로세스 확인
+PORT_IN_USE=false
+if command -v lsof &> /dev/null; then
+    if lsof -ti:3000 &> /dev/null; then
+        PORT_IN_USE=true
+    fi
+elif command -v ss &> /dev/null; then
+    if ss -ltnp | grep -q ':3000'; then
+        PORT_IN_USE=true
+    fi
+elif command -v netstat &> /dev/null; then
+    if netstat -tlnp 2>/dev/null | grep -q ':3000'; then
+        PORT_IN_USE=true
+    fi
+fi
 
 # PM2 프로세스가 실행 중인지 확인
+PM2_RUNNING=false
 if pm2 list | grep -q "$APP_NAME"; then
-    log_info "기존 프로세스를 재시작합니다..."
-    pm2 restart "$APP_NAME" --update-env
-else
-    log_info "새로운 프로세스를 시작합니다..."
-    pm2 start server.js --name "$APP_NAME" --update-env
-    # 자동 시작 설정 (처음 한 번만)
-    log_info "자동 시작 설정을 확인합니다..."
-    pm2 save
+    PM2_RUNNING=true
 fi
+
+# 포트 충돌 해결
+if [ "$PORT_IN_USE" = true ] || [ "$PM2_RUNNING" = true ]; then
+    log_warn "포트 3000이 사용 중이거나 PM2 프로세스가 실행 중입니다."
+    log_info "기존 프로세스를 정리합니다..."
+    
+    # PM2 프로세스 중지 및 삭제
+    if [ "$PM2_RUNNING" = true ]; then
+        pm2 stop "$APP_NAME" 2>/dev/null || true
+        pm2 delete "$APP_NAME" 2>/dev/null || true
+        log_info "✅ PM2 프로세스 정리 완료"
+        sleep 1
+    fi
+    
+    # 포트를 사용하는 다른 프로세스 종료
+    if [ "$PORT_IN_USE" = true ]; then
+        if command -v lsof &> /dev/null; then
+            PORT_PID=$(lsof -ti:3000 2>/dev/null || true)
+            if [ -n "$PORT_PID" ]; then
+                log_info "포트 3000을 사용하는 프로세스 종료: PID $PORT_PID"
+                kill -9 $PORT_PID 2>/dev/null || true
+                sleep 2
+            fi
+        elif command -v ss &> /dev/null; then
+            PORT_PID=$(ss -ltnp 2>/dev/null | grep ':3000' | awk '{print $6}' | cut -d, -f2 | cut -d= -f2 | head -1 || true)
+            if [ -n "$PORT_PID" ] && [ "$PORT_PID" != "-" ]; then
+                log_info "포트 3000을 사용하는 프로세스 종료: PID $PORT_PID"
+                kill -9 $PORT_PID 2>/dev/null || true
+                sleep 2
+            fi
+        elif command -v netstat &> /dev/null; then
+            PORT_PID=$(netstat -tlnp 2>/dev/null | grep ':3000' | awk '{print $7}' | cut -d/ -f1 | head -1 || true)
+            if [ -n "$PORT_PID" ] && [ "$PORT_PID" != "-" ]; then
+                log_info "포트 3000을 사용하는 프로세스 종료: PID $PORT_PID"
+                kill -9 $PORT_PID 2>/dev/null || true
+                sleep 2
+            fi
+        fi
+    fi
+fi
+
+# .env 파일 최종 확인
+log_info ".env 파일 최종 확인 중..."
+if [ ! -f ".env" ]; then
+    log_error ".env 파일이 없습니다. 애플리케이션을 시작할 수 없습니다."
+    exit 1
+fi
+
+# PM2로 애플리케이션 재시작 (.env 파일 사용)
+log_info "🔄 애플리케이션을 시작합니다 (.env 파일 사용)..."
+log_info "환경변수 파일: .env"
+
+# PM2가 .env 파일을 자동으로 로드하도록 시작
+pm2 start server.js --name "$APP_NAME" --update-env --env production 2>/dev/null || \
+pm2 start server.js --name "$APP_NAME" --update-env
+
+# 자동 시작 설정
+pm2 save
 
 # 잠시 대기 (애플리케이션 시작 시간)
 sleep 3
@@ -100,14 +183,24 @@ sleep 3
 log_info "📊 배포 상태를 확인합니다..."
 pm2 status
 
-# 헬스 체크
-log_info "🏥 애플리케이션 헬스 체크..."
+# 헬스 체크 및 환경변수 확인
+log_info "🏥 애플리케이션 헬스 체크 및 환경변수 확인..."
 sleep 2
 
+# 환경변수 로드 확인
+log_info "환경변수 로드 확인 중..."
+if node -e "require('dotenv').config(); console.log('DB_HOST:', process.env.DB_HOST || 'NOT SET')" 2>/dev/null | grep -q "NOT SET"; then
+    log_warn "⚠️  환경변수가 제대로 로드되지 않을 수 있습니다."
+else
+    log_info "✅ 환경변수 로드 확인 완료"
+fi
+
+# API 헬스 체크
 if curl -s http://localhost:3000/api/todos > /dev/null; then
     log_info "✅ 애플리케이션이 정상적으로 응답합니다!"
 else
     log_warn "⚠️  애플리케이션이 응답하지 않을 수 있습니다. 로그를 확인하세요."
+    log_info ".env 파일을 확인하세요: cat .env"
 fi
 
 # 최근 로그 출력
