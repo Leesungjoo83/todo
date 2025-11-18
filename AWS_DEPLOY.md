@@ -457,50 +457,6 @@ curl http://your-ec2-public-ip/api/todos
 pm2 monit
 ```
 
-#### 12. 자동 배포 스크립트 사용 (권장) ⚡
-
-프로젝트에 자동 배포 스크립트가 포함되어 있습니다. 코드를 업데이트할 때마다 쉽게 배포할 수 있습니다.
-
-**첫 배포 (초기 설정):**
-
-```bash
-# 스크립트 실행 권한 부여
-chmod +x deploy-first-time.sh
-
-# 첫 배포 실행
-./deploy-first-time.sh
-```
-
-또는 npm 스크립트 사용:
-```bash
-npm run deploy:first
-```
-
-**일반 배포 (코드 업데이트 시):**
-
-```bash
-# 스크립트 실행 권한 부여 (처음 한 번만)
-chmod +x deploy.sh
-
-# 배포 실행
-./deploy.sh
-```
-
-또는 npm 스크립트 사용:
-```bash
-npm run deploy
-```
-
-자동 배포 스크립트가 다음을 자동으로 수행합니다:
-- ✅ Git에서 최신 코드 가져오기
-- ✅ 의존성 업데이트 (npm install)
-- ✅ PM2로 애플리케이션 재시작
-- ✅ 배포 상태 확인
-- ✅ 헬스 체크
-- ✅ 로그 출력
-
-더 자세한 내용은 `DEPLOY_QUICK.md` 파일을 참고하세요.
-
 ---
 
 ### 방법 2: AWS Elastic Beanstalk
