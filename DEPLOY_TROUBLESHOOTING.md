@@ -105,15 +105,144 @@ pm2 delete todo
 pm2 start server.js --name todo
 ```
 
-### 데이터베이스 연결 실패
+## 데이터베이스 인증 오류 (ER_ACCESS_DENIED_ERROR)
+
+### 증상
+```
+Access denied for user 'root'@'172.31.44.73' (using password: YES)
+errno: 1045
+code: 'ER_ACCESS_DENIED_ERROR'
+```
+
+### 원인
+- 사용자명 또는 비밀번호가 잘못됨
+- RDS 보안 그룹에서 EC2 인스턴스의 IP/보안 그룹이 허용되지 않음
+- .env 파일이 올바른 폴더에 없거나 PM2가 환경변수를 로드하지 못함
+
+### 해결 방법
+
+#### 방법 1: 자동 해결 스크립트 사용 (권장)
+
+```bash
+# 스크립트 다운로드 및 실행
+cd ~/todo_AWS
+git pull origin main
+chmod +x fix-db-auth.sh
+./fix-db-auth.sh
+```
+
+#### 방법 2: 수동 해결 (단계별)
+
+**1단계: .env 파일 확인 및 복사**
+```bash
+# 원본 폴더의 .env 확인
+cat ~/todo_AWS/.env | grep -v PASSWORD
+
+# todo-app 폴더로 복사
+cp ~/todo_AWS/.env ~/todo-app/.env
+chmod 600 ~/todo-app/.env
+
+# 복사된 파일 확인
+cat ~/todo-app/.env | grep -v PASSWORD
+```
+
+**2단계: .env 파일 편집 (비밀번호 확인)**
+```bash
+cd ~/todo-app
+nano .env
+```
+
+다음 항목을 확인하세요:
+- `DB_HOST`: RDS 엔드포인트 (예: `todo.c5aac4i6et2q.ap-northeast-2.rds.amazonaws.com`)
+- `DB_PORT`: 3307
+- `DB_USER`: root (또는 RDS 마스터 사용자명)
+- `DB_PASSWORD`: RDS 마스터 비밀번호 (정확히 확인!)
+- `DB_NAME`: todo
+
+**3단계: 환경변수 로드 확인**
+```bash
+cd ~/todo-app
+node -e "require('dotenv').config(); console.log('DB_HOST:', process.env.DB_HOST); console.log('DB_USER:', process.env.DB_USER); console.log('DB_NAME:', process.env.DB_NAME);"
+```
+
+**4단계: 데이터베이스 연결 직접 테스트**
+```bash
+# MariaDB/MySQL 클라이언트 설치 (없는 경우)
+sudo apt-get install -y mariadb-client
+
+# 직접 연결 테스트
+mysql -h $(grep DB_HOST ~/todo-app/.env | cut -d'=' -f2) \
+      -P $(grep DB_PORT ~/todo-app/.env | cut -d'=' -f2) \
+      -u $(grep DB_USER ~/todo-app/.env | cut -d'=' -f2) \
+      -p$(grep DB_PASSWORD ~/todo-app/.env | cut -d'=' -f2) \
+      -e "SELECT USER(), DATABASE(), @@hostname;"
+```
+
+**5단계: PM2 완전 재시작**
+```bash
+# PM2 프로세스 완전 삭제
+pm2 delete todo-app
+
+# todo-app 폴더로 이동
+cd ~/todo-app
+
+# .env 파일 확인
+ls -la .env
+
+# PM2로 재시작 (환경변수 명시적 로드)
+pm2 start server.js --name todo-app --update-env
+pm2 save
+
+# 잠시 대기
+sleep 5
+
+# 로그 확인
+pm2 logs todo-app --lines 30
+```
+
+**6단계: RDS 보안 그룹 확인**
+
+1. AWS 콘솔 → RDS → 데이터베이스 → 인스턴스 선택
+2. **연결 및 보안** 탭 → **보안** 섹션의 **보안 그룹** 클릭
+3. **인바운드 규칙 편집**:
+   - Type: MySQL/Aurora
+   - Port: 3307
+   - Source: EC2 인스턴스의 보안 그룹 ID (권장) 또는 `172.31.44.73/32`
+
+**7단계: RDS 퍼블릭 액세스 확인**
+
+1. RDS 콘솔 → 인스턴스 선택
+2. **연결 및 보안** 탭
+3. **퍼블릭 액세스 가능**이 **예**인지 확인
+
+**8단계: RDS 비밀번호 재확인**
+
+RDS 콘솔에서:
+1. 데이터베이스 → 인스턴스 선택
+2. **구성** 탭
+3. **마스터 사용자 이름** 확인
+4. 마스터 비밀번호가 `.env`의 `DB_PASSWORD`와 일치하는지 확인
+
+비밀번호를 모르거나 변경이 필요한 경우:
+- RDS 콘솔에서 비밀번호 수정 가능 (인스턴스 재부팅 필요)
+- 또는 AWS CLI 사용:
+```bash
+aws rds modify-db-instance \
+  --db-instance-identifier todo \
+  --master-user-password 새비밀번호 \
+  --apply-immediately
+```
+
+### 데이터베이스 연결 실패 (일반)
 
 **해결:**
 ```bash
 # .env 파일 확인
-cat .env
+cat ~/todo-app/.env
 
 # 환경변수가 올바르게 로드되는지 확인
-node -e "require('dotenv').config(); console.log(process.env.DB_HOST);"
+cd ~/todo-app
+node -e "require('dotenv').config(); console.log('DB_HOST:', process.env.DB_HOST);"
 
 # 데이터베이스 연결 테스트
 mysql -h your-rds-endpoint.xxxxx.ap-northeast-2.rds.amazonaws.com \
