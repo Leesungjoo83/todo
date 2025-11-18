@@ -99,3 +99,31 @@ npm run dev
 - 달력 뷰 (월간 필터 시)
 - JSON/Excel 파일로 내보내기
 - JSON 파일에서 불러오기
+
+## AWS 배포
+
+### 빠른 배포 (권장) ⚡
+
+AWS EC2에 프로젝트가 이미 설치되어 있는 경우, 자동 배포 스크립트를 사용할 수 있습니다:
+
+**첫 배포:**
+```bash
+chmod +x deploy-first-time.sh
+./deploy-first-time.sh
+```
+
+**일반 배포 (코드 업데이트 시):**
+```bash
+chmod +x deploy.sh
+./deploy.sh
+```
+
+또는 npm 스크립트 사용:
+```bash
+npm run deploy:first  # 첫 배포
+npm run deploy        # 일반 배포
+```
+
+더 자세한 내용은 다음 파일을 참고하세요:
+- `DEPLOY_QUICK.md` - 빠른 배포 가이드
+- `AWS_DEPLOY.md` - 상세한 AWS 배포 가이드
