@@ -73,7 +73,22 @@ npm run deploy
    - `DB_PASSWORD`: 비밀번호
    - `DB_NAME`: todo
 
-2. **데이터베이스 연결 확인**
+2. **.env 파일이 없는 경우**
+   
+   원본 폴더(`todo_AWS`)에서 복사:
+   ```bash
+   # 자동 복사 스크립트 사용
+   chmod +x copy-env.sh
+   ./copy-env.sh ~/todo_AWS ~/todo-app
+   
+   # 또는 수동 복사
+   cp ~/todo_AWS/.env ~/todo-app/.env
+   chmod 600 ~/todo-app/.env
+   ```
+   
+   ⚠️ **참고**: 배포 스크립트(`deploy.sh`, `deploy-first-time.sh`)는 자동으로 원본 폴더에서 `.env` 파일을 찾아서 복사합니다.
+
+3. **데이터베이스 연결 확인**
    ```bash
    # RDS 연결 테스트
    mysql -h your-rds-endpoint.xxxxx.ap-northeast-2.rds.amazonaws.com \

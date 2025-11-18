@@ -106,7 +106,15 @@ log_step "5. .env 파일 설정"
 
 # .env 파일이 없으면 생성
 if [ ! -f ".env" ]; then
-    if [ -f "env.example" ]; then
+    # 먼저 원본 폴더(todo_AWS)에서 .env 파일 찾기
+    SOURCE_ENV="${HOME}/todo_AWS/.env"
+    if [ -f "$SOURCE_ENV" ]; then
+        log_info "원본 폴더에서 .env 파일을 발견했습니다: $SOURCE_ENV"
+        log_info ".env 파일을 복사합니다..."
+        cp "$SOURCE_ENV" ".env"
+        chmod 600 .env
+        log_info "✅ 원본 폴더에서 .env 파일 복사 완료"
+    elif [ -f "env.example" ]; then
         log_info "env.example을 기반으로 .env 파일을 생성합니다..."
         cp env.example .env
         log_info "✅ .env 파일 생성 완료"

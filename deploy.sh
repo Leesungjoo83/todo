@@ -42,17 +42,31 @@ log_info "프로젝트 디렉토리로 이동: $PROJECT_DIR"
 
 # .env 파일 확인 (필수)
 if [ ! -f ".env" ]; then
-    log_error ".env 파일이 없습니다!"
-    if [ -f "env.example" ]; then
+    log_warn ".env 파일이 없습니다!"
+    
+    # 먼저 원본 폴더(todo_AWS)에서 .env 파일 찾기
+    SOURCE_ENV="${HOME}/todo_AWS/.env"
+    if [ -f "$SOURCE_ENV" ]; then
+        log_info "원본 폴더에서 .env 파일을 발견했습니다: $SOURCE_ENV"
+        log_info ".env 파일을 복사합니다..."
+        cp "$SOURCE_ENV" ".env"
+        chmod 600 .env
+        log_info "✅ 원본 폴더에서 .env 파일 복사 완료"
+    elif [ -f "env.example" ]; then
         log_info "env.example을 기반으로 .env 파일을 생성합니다..."
         cp env.example .env
         chmod 600 .env
         log_warn "⚠️  .env 파일을 생성했습니다. 반드시 수정하여 실제 데이터베이스 정보를 입력하세요!"
         log_info "편집 명령어: nano .env"
+        log_warn "또는 원본 폴더의 .env 파일을 복사하세요:"
+        log_info "  cp ~/todo_AWS/.env .env"
         log_error "배포를 계속할 수 없습니다. .env 파일을 설정한 후 다시 실행하세요."
         exit 1
     else
         log_error ".env 파일이 없습니다. 배포를 계속할 수 없습니다."
+        log_info "해결 방법:"
+        log_info "  1. 원본 폴더에서 복사: cp ~/todo_AWS/.env .env"
+        log_info "  2. 또는 env.example 기반으로 생성: cp env.example .env && nano .env"
         exit 1
     fi
 else
