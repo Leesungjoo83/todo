@@ -9,11 +9,11 @@
 - SheetJS (엑셀 내보내기)
 
 ### 백엔드
-- Node.js
+- Node.js (>=18.0.0)
 - Express
-- MariaDB
+- MariaDB/MySQL
 
-## 설치 및 실행
+## 빠른 시작
 
 ### 1. 의존성 설치
 
@@ -21,74 +21,33 @@
 npm install
 ```
 
-**PowerShell 실행 정책 오류가 발생하는 경우:**
-
-Windows PowerShell에서 실행 정책 오류가 발생하면 다음 방법 중 하나를 사용하세요:
-
-**방법 1: CMD 사용 (권장)**
-- PowerShell 대신 명령 프롬프트(CMD)를 사용하세요
-- CMD에서는 실행 정책 제한이 없습니다
-
-**방법 2: 실행 정책 변경 (관리자 권한 필요)**
-```powershell
-# 관리자 권한으로 PowerShell 실행 후
-Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
-```
-
-**방법 3: npm.cmd 직접 사용**
-```powershell
-npm.cmd install
-```
+**Windows PowerShell 실행 정책 오류 시:**
+- CMD 사용 (권장) 또는 `npm.cmd install` 실행
 
 ### 2. 데이터베이스 설정
 
-MariaDB에 접속하여 `database.sql` 파일을 실행하세요:
+`.env` 파일을 생성하고 데이터베이스 정보를 설정하세요:
 
 ```bash
-mysql -u root -p -P 3307 < database.sql
+cp env.example .env
+# .env 파일 편집
 ```
 
-또는 MariaDB 클라이언트에서 직접 실행:
-
-```sql
-CREATE DATABASE IF NOT EXISTS todo CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE todo;
--- database.sql 파일의 나머지 내용 실행
+로컬 MariaDB 사용 시:
+```bash
+mysql -u root -p -P 3307 < database.sql
 ```
 
 ### 3. 서버 실행
 
 ```bash
-npm start
+npm start        # 프로덕션 모드
+npm run dev      # 개발 모드 (nodemon)
 ```
 
-개발 모드 (nodemon 사용):
+서버는 `http://localhost:3000`에서 실행됩니다.
 
-```bash
-npm run dev
-```
-
-서버는 기본적으로 `http://localhost:3000`에서 실행됩니다.
-
-## 데이터베이스 설정
-
-- **데이터베이스 이름**: todo
-- **사용자**: root
-- **비밀번호**: 1234
-- **포트**: 3307
-
-설정을 변경하려면 `server.js` 파일의 MariaDB 연결 설정을 수정하세요.
-
-## API 엔드포인트
-
-- `GET /api/todos` - 모든 할일 조회
-- `GET /api/todos/:id` - 특정 할일 조회
-- `POST /api/todos` - 할일 추가
-- `PUT /api/todos/:id` - 할일 수정
-- `DELETE /api/todos/:id` - 할일 삭제
-- `DELETE /api/todos` - 완료된 할일 모두 삭제
-
-## 기능
+## 주요 기능
 
 - 할일 추가, 수정, 삭제
 - 완료 상태 토글
@@ -100,30 +59,36 @@ npm run dev
 - JSON/Excel 파일로 내보내기
 - JSON 파일에서 불러오기
 
+## API 엔드포인트
+
+- `GET /api/todos` - 모든 할일 조회
+- `GET /api/todos/:id` - 특정 할일 조회
+- `POST /api/todos` - 할일 추가
+- `PUT /api/todos/:id` - 할일 수정
+- `DELETE /api/todos/:id` - 할일 삭제
+- `DELETE /api/todos` - 완료된 할일 모두 삭제
+
 ## AWS 배포
 
-### 빠른 배포 (권장) ⚡
+### 빠른 배포 (EC2에 이미 설치된 경우)
 
-AWS EC2에 프로젝트가 이미 설치되어 있는 경우, 자동 배포 스크립트를 사용할 수 있습니다:
-
-**첫 배포:**
-```bash
-chmod +x deploy-first-time.sh
-./deploy-first-time.sh
-```
-
-**일반 배포 (코드 업데이트 시):**
-```bash
-chmod +x deploy.sh
-./deploy.sh
-```
-
-또는 npm 스크립트 사용:
 ```bash
 npm run deploy:first  # 첫 배포
 npm run deploy        # 일반 배포
 ```
 
-더 자세한 내용은 다음 파일을 참고하세요:
+### 상세 가이드
+
+- **[DEPLOY_QUICK.md](./DEPLOY_QUICK.md)** - 빠른 배포 가이드
+- **[AWS_DEPLOY.md](./AWS_DEPLOY.md)** - 상세한 AWS 배포 가이드 (EC2, Elastic Beanstalk, App Runner, Docker)
+
+## 문제 해결
+
+문제가 발생하면 **[TROUBLESHOOTING.md](./TROUBLESHOOTING.md)** 문서를 참고하세요.
+
+## 문서 구조
+
+- `README.md` - 프로젝트 소개 및 빠른 시작
+- `AWS_DEPLOY.md` - AWS 배포 상세 가이드
 - `DEPLOY_QUICK.md` - 빠른 배포 가이드
-- `AWS_DEPLOY.md` - 상세한 AWS 배포 가이드
+- `TROUBLESHOOTING.md` - 문제 해결 가이드 (로컬/배포/RDS)

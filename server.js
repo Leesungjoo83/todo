@@ -205,7 +205,8 @@ app.delete('/api/todos', async (req, res) => {
 });
 
 // 서버 시작
-app.listen(PORT, () => {
-  console.log(`🚀 서버가 http://localhost:${PORT} 에서 실행 중입니다.`);
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 서버가 http://0.0.0.0:${PORT} 에서 실행 중입니다.`);
+  console.log(`🌐 외부 접속: http://your-ec2-public-ip:${PORT}`);
 });
 

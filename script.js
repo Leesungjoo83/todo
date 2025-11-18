@@ -4,8 +4,8 @@ const todoList = document.getElementById('todoList');
 const todoStats = document.getElementById('todoStats');
 const clearCompletedBtn = document.getElementById('clearCompleted');
 
-// API 기본 URL
-const API_BASE_URL = 'http://localhost:3000/api';
+// API 기본 URL (현재 호스트 사용)
+const API_BASE_URL = `${window.location.protocol}//${window.location.hostname}:${window.location.port || '3000'}/api`;
 
 // 할일 목록
 let todos = [];

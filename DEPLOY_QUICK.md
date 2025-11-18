@@ -106,6 +106,8 @@ npm run deploy
 
 ## 🔧 문제 해결
 
+자세한 문제 해결 방법은 **[TROUBLESHOOTING.md](./TROUBLESHOOTING.md)** 문서를 참고하세요.
+
 ### 배포 실패 시
 
 1. **로그 확인**
