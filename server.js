@@ -13,12 +13,12 @@ app.use(express.static('.')); // 정적 파일 제공 (프론트엔드)
 
 // MariaDB 연결 설정
 const pool = mariadb.createPool({
-  host: 'localhost',
-  port: 3307,
-  user: 'root',
-  password: '1234',
-  database: 'todo',
-  connectionLimit: 5
+  host: process.env.DB_HOST || 'localhost',
+  port: parseInt(process.env.DB_PORT) || 3307,
+  user: process.env.DB_USER || 'root',
+  password: process.env.DB_PASSWORD || 'qwer1257',
+  database: process.env.DB_NAME || 'todo',
+  connectionLimit: parseInt(process.env.DB_CONNECTION_LIMIT) || 5
 });
 
 // 데이터베이스 연결 테스트

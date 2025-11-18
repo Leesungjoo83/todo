@@ -1,0 +1,12 @@
+node_modules
+npm-debug.log
+.env
+.git
+.gitignore
+README.md
+AWS_DEPLOY.md
+TROUBLESHOOTING.md
+*.md
+.DS_Store
+Thumbs.db
+

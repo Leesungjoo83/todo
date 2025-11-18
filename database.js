@@ -1,13 +1,15 @@
 // 데이터베이스 연결 확인 스크립트
 const mariadb = require('mariadb');
 
+require('dotenv').config();
+
 const pool = mariadb.createPool({
-  host: 'localhost',
-  port: 3307,
-  user: 'root',
-  password: 'qwer1257',
-  database: 'todo',
-  connectionLimit: 5
+  host: process.env.DB_HOST || 'localhost',
+  port: parseInt(process.env.DB_PORT) || 3307,
+  user: process.env.DB_USER || 'root',
+  password: process.env.DB_PASSWORD || 'qwer1257',
+  database: process.env.DB_NAME || 'todo',
+  connectionLimit: parseInt(process.env.DB_CONNECTION_LIMIT) || 5
 });
 
 async function checkDatabase() {
